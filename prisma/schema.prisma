@@ -9,3 +9,32 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id            String @id @default(uuid())
+  name          String
+  email         String @unique
+  pssword       String
+  writtenPosts  Post[] @relation("WrittenPosts")
+  favoritePosts Post[] @relation("FavoritePosts")
+}
+
+model Post {
+  id            String     @id @default(uuid())
+  title         String
+  content       String
+  author        User       @relation("WrittenPosts", fields: [authorId], references: [id])
+  authorId      String
+  likes         Int
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  favoritedBy   User?      @relation("FavoritePosts", fields: [favoritedById], references: [id])
+  favoritedById String?
+  categories    Category[]
+}
+
+model Category {
+  id    String @id @default(uuid())
+  name  String @unique
+  posts Post[]
+}
