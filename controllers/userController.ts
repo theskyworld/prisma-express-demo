@@ -5,6 +5,10 @@ const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 const saltRound = Number(process.env.SALT_ROUND);
 
+
+// @desc    注册用户
+// @route   POST /api/user/register
+// @access  Public
 const register = asyncHandler(async (req: Request, res: Response) => {
   const { username, password, email } = req.body;
   if (username && password && email) {
