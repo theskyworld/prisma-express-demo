@@ -2,9 +2,10 @@ const asyncHandler = require("express-async-handler");
 import type { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const prisma = new PrismaClient();
 const saltRound = Number(process.env.SALT_ROUND);
-
+const SECRET_KEY = process.env.SECRET_KEY;
 
 // @desc    注册用户
 // @route   POST /api/user/register
@@ -80,6 +81,68 @@ const register = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+// @desc    登录
+// @route   POST /api/user/login
+// @access  Public
+const login = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  if (email && password) {
+    try {
+      const existedUser = await prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+      if (existedUser) {
+        bcrypt.compare(
+          password,
+          existedUser.password,
+          (err: Error, result: boolean) => {
+            if (err) {
+              res.status(400);
+              throw new Error(err.message);
+            }
+            if (result) {
+              const token = jwt.sign(
+                {
+                  id: existedUser.id,
+                },
+                SECRET_KEY,
+                {
+                  expiresIn: "7d",
+                }
+              );
+              res.status(200).json({
+                token,
+                user: {
+                  ...existedUser,
+                  password: undefined,
+                },
+              });
+            } else {
+              // TODO,bcrypt.compare内部的错误，errorHandler捕获不到
+              res.status(400);
+              throw new Error("邮箱地址或密码不正确");
+            }
+          }
+        );
+      } else {
+        res.status(400);
+        throw new Error("用户未注册");
+      }
+    } catch (err) {
+      res.status(400);
+      throw new Error((err as any).message);
+    } finally {
+      await prisma.$disconnect();
+    }
+  } else {
+    res.status(400);
+    throw new Error("字段填写不完整");
+  }
+});
+
 module.exports = {
   register,
+  login,
 };
