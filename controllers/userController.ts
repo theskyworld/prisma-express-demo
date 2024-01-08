@@ -150,8 +150,88 @@ const getUser = asyncHandler(async (req: Request, res: Response) => {
   res.status(200).json(user);
 });
 
+// @desc    更新用户
+// @route   PUT /api/user
+// @access  Private
+const updateUser = asyncHandler(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const { username, email, password } = req.body;
+  if (user) {
+    try {
+      let updatedUser;
+      if (password) {
+        bcrypt.genSalt(saltRound, (err: Error, salt: string) => {
+          if (err) {
+            res.status(400);
+            throw new Error(err.message);
+          }
+          if (salt) {
+            bcrypt.hash(password, salt, async (err: Error, hash: string) => {
+              if (err) {
+                res.status(400);
+                throw new Error(err.message);
+              }
+              if (hash) {
+                updatedUser = await prisma.user.update({
+                  where: {
+                    email,
+                  },
+                  data: {
+                    name: username ? username : user.name,
+                    email: email ? email : user.email,
+                    password: hash,
+                  },
+                });
+                if (updatedUser) {
+                  res.status(200).json({
+                    id: updatedUser.id,
+                    name: updatedUser.name,
+                    email: updatedUser.email,
+                  });
+                } else {
+                  res.status(400);
+                  throw new Error("更新用户失败");
+                }
+              }
+            });
+          }
+        });
+      } else {
+        updatedUser = await prisma.user.update({
+          where: {
+            email,
+          },
+          data: {
+            name: username ? username : user.name,
+            email: email ? email : user.email,
+          },
+        });
+        if (updatedUser) {
+          res.status(200).json({
+            id: updatedUser.id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+          });
+        } else {
+          res.status(400);
+          throw new Error("更新用户失败");
+        }
+      }
+    } catch (err) {
+      res.status(400);
+      throw new Error((err as any).message);
+    } finally {
+      await prisma.$disconnect();
+    }
+  } else {
+    res.status(400);
+    throw new Error("用户未登录或登录过期");
+  }
+});
+
 module.exports = {
   register,
   login,
   getUser,
+  updateUser,
 };
