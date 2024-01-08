@@ -142,7 +142,16 @@ const login = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+// @desc    获取用户信息
+// @route   GET /api/user
+// @access  Private
+const getUser = asyncHandler(async (req: Request, res: Response) => {
+  const user = (req as any).user || {};
+  res.status(200).json(user);
+});
+
 module.exports = {
   register,
   login,
+  getUser,
 };
